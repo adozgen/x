@@ -1,0 +1,5 @@
+# Read the user resources database.
+for f in $(listdir "$X/etc/xresources"); do
+	xrdb -merge "$f"
+done
+unset f

@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# Hafif ortamlarda, güvensiz yerlerde asla parola bulundurma
+anyattr base server unsafe tc && skiptask "güvenli olmayan ortam"
+
+[ -n "$PRIVATEDIR" ] || PRIVATEDIR=.private
+
+cry "DİKKAT!  GÜVENLİ ŞEKİLDE PAROLA KAYDI YAPILACAK!"
+yesno "Bu makinede parola bulundurmak istediğinize emin misiniz?" || exit 0
+
+# 19/x yapılandırması mevcutsa yükle
+[ -n "$XRCFILE" ] || XRCFILE=".x"
+[ -f "$XRCFILE" ] && . "$XRCFILE"
+
+# Hedef dosyalar
+PASSFILE="${PRIVATEDIR}/gmail.base64"
+
+# Özel dizini oluştur
+mkdir -p "$PRIVATEDIR"
+chmod 700 "$PRIVATEDIR"
+
+if [ -n "$X_EMAIL" ]; then
+	[ -x /usr/bin/base64 ] || die "/usr/bin/base64 bulunamadı"
+
+	# Parola dosyasını güvenli şekilde oluşturalım
+	touchsafe "$PASSFILE"
+
+	asksecret "Lütfen $X_EMAIL hesabına ait parolayı girin"
+	# Parolayı base64 ile kodluyoruz.  Bu basit bir obfuscation.  Kullanıcının
+	# herkesin gözü önünde yanlışlıkla parola dosyasını açarak "birtanem"i veya
+	# "qwerty"yi herkesin görmemesi için ;-)
+	echo "$REPLY" | /usr/bin/base64 >"$PASSFILE"
+	cry "Parola $PASSFILE dosyasına kaydedildi."
+fi
+
+# Güvenli şekilde bunu da oluştur (uyarılara rağmen token yazanlar var)
+touchsafe .gitconfig
+
+if [ -n "$GITHUB_USER" ]; then
+	git config --file .gitconfig github.user "$GITHUB_USER" 2>/dev/null ||:
+fi

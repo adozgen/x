@@ -1,0 +1,88 @@
+#!/bin/bash
+
+anyattr base && skiptask "baz sistem"
+
+# ------------------------------------------------------------------------------
+# Her makinede (grafik ortam bulunmayan sunucular dahil) kurulacak paketler
+#
+# Dikkat!  Bu kategorideki Gem'lerin ağır bir bağımlılığı olmamalı.  Özellikle X
+# Window'a bağımlı hiçbir paket olmamalı.
+# ------------------------------------------------------------------------------
+
+GEM_BASE="
+awesome_print
+bundler
+gist
+github
+json
+launchy
+mime-types
+pro
+pry
+pry-doc
+rdoc-data
+redcarpet
+rubocop
+sass
+slim
+"
+
+# ------------------------------------------------------------------------------
+# Tipik bir masaüstü ortamda kurulacak paketler
+#
+# Dikkat!  Bu kategoride graif ortamda çalışabilecek paketler olabilir.  Fakat
+# paket bağımlılığı sorunları azaltmak için karmaşık bağımlılığa sahip paketler
+# kurmaktan kaçının.
+# ------------------------------------------------------------------------------
+
+GEM_STANDARD="
+git-pulls
+gx
+jekyll
+nokogiri
+ronn
+thor
+"
+
+# ------------------------------------------------------------------------------
+# Geliştirme ortamı olarak kullanacağımız bir makinede kurulacak ekstra paketler
+# ------------------------------------------------------------------------------
+
+GEM_EXTRA="
+chunky_png
+CoffeeTags
+gdata4ruby
+gdocs4ruby
+hirb
+oily_png
+pry-nav
+pry-rails
+rdp-arguments
+"
+
+hascommand ruby1.9.1 || hascommand gem1.9.1 || hascommand ruby || hascommand gem || {
+	cry "Ruby kurulu değil."
+	exit 0
+}
+
+if ! anyattr server && anyattr gui &&
+   yesno "Ekstra Ruby Gem'leri kurulsun mu?" e; then
+	setattr fat
+fi
+
+sudoattempt
+
+installgems "Temel Gem paketleri kuruluyor" $GEM_BASE
+if ! anyattr server && anyattr gui fat; then
+	installgems "Standart bir çalışma ortamı için gerekli Gem paketleri kuruluyor" \
+		$GEM_STANDARD
+fi
+if anyattr fat; then
+	installgems "Geliştirici ortamı için gerekli ekstra Gem paketleri kuruluyor" \
+		$GEM_EXTRA
+fi
+
+if hascommand rdoc-data; then
+	say "ri dokümanları güncelleniyor..."
+	sudo rdoc-data --install
+fi

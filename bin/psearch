@@ -1,0 +1,35 @@
+#!/bin/bash
+#
+# Search the contents of packages.
+# Recai Oktaş <roktas@bil.omu.edu.tr>
+
+set -e
+
+export LC_ALL=C
+
+PDO_BASE=${PDO_BASE:-http://packages.debian.org}
+CGI_URI=${PDO_BASE}/search
+
+PATTERN="$(perl -MURI::Escape -e 'print uri_escape($ARGV[0]);' "$1")"
+DIST="${2:-unstable}"
+ARCH="${3:-$(dpkg-architecture -qDEB_HOST_ARCH 2>/dev/null ||:)}"
+
+if [ -z "$1" ]; then
+	echo >&2 "Usage: $0 PATTERN [DIST] [ARCH]"
+	exit 1
+fi
+
+if [ ! -z "$(which links2)" ]; then
+	BROWSER=links2
+elif  [ ! -z "$(which links)" ]; then
+	BROWSER=links
+elif  [ ! -z "$(which w3m)" ]; then
+	BROWSER=w3m
+elif  [ ! -z "$(which lynx)" ]; then
+	BROWSER=lynx
+else
+	echo >&2 "$0: can't find a browser"
+	exit 1
+fi
+
+$BROWSER "http://packages.debian.org/search?searchon=contents&keywords=${PATTERN}&mode=path&suite=${DIST}&arch=${ARCH}"

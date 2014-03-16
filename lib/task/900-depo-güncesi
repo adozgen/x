@@ -1,0 +1,6 @@
+#!/bin/bash
+
+[ -z "$X" ] || cd "$X"
+
+hascommand tig && exec tig
+git log --graph --decorate --pretty=oneline --abbrev-commit

@@ -1,0 +1,243 @@
+#!/bin/bash
+
+# ------------------------------------------------------------------------------
+# Her makinede (grafik ortam bulunmayan sunucular dahil) kurulacak paketler
+#
+# Dikkat!  Bu kategorideki paketlerin ağır bir bağımlılığı olmamalı.  Özellikle
+# X Window'a bağımlı hiçbir paket olmamalı.
+# ------------------------------------------------------------------------------
+
+DEB_BASE="
+aptitude
+at
+bash-completion
+bmon
+bzip2
+ccze
+console-setup
+console-terminus
+curl
+dnsutils
+fail2ban
+file
+git
+htop
+iselect
+less
+libhighline-ruby1.9.1
+libio-socket-ssl-perl
+liblist-moreutils-perl
+libyaml-tiny-perl
+lsb-release
+lsof
+mc
+moreutils
+mtr-tiny
+ncurses-term
+passwordmaker-cli
+pciutils
+pdmenu
+pngnq
+psmisc
+rsync
+ruby1.9.1
+ssh
+sudo
+tcpdump
+telnet
+time
+tmux
+unzip
+vim
+whohas
+whois
+"
+
+# ------------------------------------------------------------------------------
+# Tipik bir çalışma istasyonunda kurulacak paketler
+#
+# Dikkat!  Bu kategoride grafik ortamda çalışabilecek paketler olabilir.  Fakat
+# paket bağımlılığı sorunları azaltmak için karmaşık bağımlılığa sahip paketler
+# kurmaktan kaçının.
+# ------------------------------------------------------------------------------
+
+DEB_STANDARD="
+anacron
+bti
+ca-certificates
+cowsay
+cplay
+devilspie
+dnstracer
+gitk
+imagemagick
+ipcalc
+jpegoptim
+lbdb
+leafpad
+liblocale-ruby1.8
+liblocale-ruby1.9.1
+liblwp-useragent-determined-perl
+libmail-box-perl
+libtcltk-ruby1.9.1
+libwww-perl
+libxml2-dev
+libxslt1-dev
+locales
+lynx-cur-wrapper
+maildir-utils
+markdown
+meld
+mime-support
+mlocate
+moc
+moc-ffmpeg-plugin
+mr
+mutt-patched
+netpbm
+notmuch
+numlockx
+offlineimap
+p7zip-full
+qalc
+recode
+sgrep
+sharutils
+strace
+tig
+t-prot
+ttf-dejavu
+unclutter
+units
+unrar
+urlview
+usbutils
+vim-gtk
+vlock
+wajig
+wodim
+xbindkeys
+xclip
+xcowsay
+xfonts-terminus
+xterm
+"
+
+# ------------------------------------------------------------------------------
+# Geliştirme ortamı olarak kullanacağımız bir makinede kurulacak ekstra paketler
+# ------------------------------------------------------------------------------
+
+DEB_EXTRA="
+bitlbee
+build-essential
+chromium-browser
+cmake
+cscope
+cutycapt
+devscripts
+exuberant-ctags
+git-buildpackage
+glibc-doc
+golang-go
+graphviz
+gtk2-engines-wonderland
+highlight
+idle
+imagemagick
+inkscape
+ipython
+key-mon
+latex-beamer
+libbsd-dev
+libfacets-ruby1.9.1
+libglib2.0-dev
+libglib2.0-doc
+librspec-ruby1.9.1
+libtemplate-multilingual-perl
+libtemplate-perl
+lmodern
+manpages-dev
+manpages-posix
+mercurial
+octave3.2
+pandoc
+pdfjam
+pep8
+perl-doc
+pgf
+php5-cli
+pyflakes
+python-doc
+python-docutils
+python-landslide-patched
+python-markdown-extra
+python-matplotlib
+python-numpy
+python-pygments
+sloccount
+subversion
+t1-xfree86-nonfree
+tango-icon-theme
+tcc
+texlive-fonts-recommended
+texlive-generic-recommended
+texlive-lang-european
+texlive-lang-french
+texlive-lang-other
+texlive-latex-extra
+texlive-latex-recommended
+texlive-publishers
+texlive-xetex
+tk-tile
+ttf-inconsolata
+ttf-ubuntu-title
+ttf-xfree86-nonfree
+ubuntu-dev-tools
+vim-gnome
+weechat
+wireshark
+xdotool
+xfonts-scalable
+"
+
+if ! anyattr server && anyattr gui; then
+	if [ "$IS_NEWINSTALL" ]; then default=e; else default=h; fi
+	if yesno "Ekstra Debian paketleri kurulsun mu?" $default; then
+		setattr fat
+	fi
+fi
+
+sudoattempt
+
+# 19 paket deposunu ekle.
+say "19 paket deposu (yoksa) ekleniyor..."
+if adddebrepository \
+	"19" \
+	"deb.ondokuz.biz" \
+	"sid" \
+	"main contrib non-free" \
+	"deb.ondokuz.biz/archive.key"; then
+	say "Paket indeksleri güncelleniyor..."
+	xaptget update ||:
+fi
+
+# XXX  Bu bir hek.  Apt/Aptitude müdahalesiz çalıştırılacak.  Bu araçlar fazla
+# akıllı olmaya çalıştığında nadir de olsa GNOME paketlerini silebiliyor.
+# Basitçe şunu yapıyoruz.  Sistemde bu noktada GNOME kurulu ise kurulacak
+# paketlere bunları da ekleyip paket bağımlılıklarının çözülmesinde artifakt
+# oluşmasını engellemeye çalışıyoruz.  Sistemde GNOME kurulu değilse bu
+# satırların bir etkisi yok.
+
+for p in gnome gnome-desktop-environment; do
+	# paket sistemde **zaten varsa** ekle
+	[ -n "$(missingdeb $p)" ] || DEB_GNOME="$DEB_GNOME $p"
+done
+
+installdebs "Temel Deb paketleri kuruluyor" $DEB_BASE
+if ! anyattr server && anyattr gui fat; then
+	installdebs "Standart bir çalışma ortamı için gerekli Deb paketleri kuruluyor" \
+		$DEB_STANDARD $DEB_GNOME
+fi
+if anyattr fat; then
+	installdebs "Ekstra Deb paketleri kuruluyor" $DEB_EXTRA $DEB_GNOME
+fi
